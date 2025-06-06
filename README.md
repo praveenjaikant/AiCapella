@@ -35,4 +35,11 @@ brew install ffmpeg
 ```
 
 After installing the dependencies you can run stem separation as described
-above.
+above. You can also start a small web service using FastAPI:
+
+```bash
+uvicorn app:app --reload
+```
+
+Upload an audio file with a POST request to `/separate` and the service will
+return a zip archive containing the separated stems.
