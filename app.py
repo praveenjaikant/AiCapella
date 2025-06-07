@@ -57,7 +57,7 @@ def _send_error_email(recipient: str, error: str) -> None:
 
     message = Mail(
         from_email=from_addr,
-        to_emails=recipient,
+        to_emails=[recipient, os.environ.get("ADMIN_EMAIL")],
         subject="Stem separation failed",
         plain_text_content=f"There was an error during stem separation:\n\n{error}",
     )
