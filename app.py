@@ -1,3 +1,4 @@
+import uvicorn
 from fastapi import FastAPI, UploadFile, File, BackgroundTasks
 from fastapi.responses import FileResponse
 import tempfile
@@ -30,3 +31,6 @@ async def separate_route(background_tasks: BackgroundTasks, file: UploadFile = F
     except Exception:
         _cleanup(workdir)
         raise
+
+if __name__ == "__main__":
+    uvicorn.run(app)

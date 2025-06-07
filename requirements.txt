@@ -1,4 +1,4 @@
 demucs
-
 fastapi
 uvicorn
+python-multipart
