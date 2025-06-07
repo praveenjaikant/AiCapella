@@ -1,8 +1,16 @@
 import uvicorn
 from fastapi import FastAPI, UploadFile, File, BackgroundTasks, Form
 from fastapi.responses import RedirectResponse
-from email.message import EmailMessage
-import smtplib
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import (
+    Mail,
+    Attachment,
+    FileContent,
+    FileName,
+    FileType,
+    Disposition,
+)
+import base64
 import tempfile
 import os
 import shutil
@@ -11,41 +19,51 @@ from separate_demucs import separate
 
 
 def _send_email(zip_path: str, recipient: str) -> None:
-    """Send the zip archive to the recipient via Gmail SMTP."""
-    user = os.environ.get("GMAIL_USER")
-    password = os.environ.get("GMAIL_PASS")
-    if not user or not password:
-        raise RuntimeError("GMAIL_USER and GMAIL_PASS must be set")
+    """Send the zip archive to the recipient using SendGrid."""
+    api_key = os.environ.get("SENDGRID_API_KEY")
+    from_addr = os.environ.get("SENDGRID_FROM")
+    if not api_key or not from_addr:
+        raise RuntimeError("SENDGRID_API_KEY and SENDGRID_FROM must be set")
 
-    msg = EmailMessage()
-    msg["Subject"] = "Separated stems"
-    msg["From"] = user
-    msg["To"] = recipient
     with open(zip_path, "rb") as f:
         data = f.read()
-    msg.add_attachment(data, maintype="application", subtype="zip", filename="stems.zip")
 
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
-        smtp.login(user, password)
-        smtp.send_message(msg)
+    encoded = base64.b64encode(data).decode()
+    attachment = Attachment(
+        FileContent(encoded),
+        FileName("stems.zip"),
+        FileType("application/zip"),
+        Disposition("attachment"),
+    )
+
+    message = Mail(
+        from_email=from_addr,
+        to_emails=recipient,
+        subject="Separated stems",
+        plain_text_content="See attached archive for your separated stems.",
+    )
+    message.attachment = attachment
+
+    sg = SendGridAPIClient(api_key)
+    sg.send(message)
 
 
 def _send_error_email(recipient: str, error: str) -> None:
-    """Notify the recipient that stem separation failed."""
-    user = os.environ.get("GMAIL_USER")
-    password = os.environ.get("GMAIL_PASS")
-    if not user or not password:
-        raise RuntimeError("GMAIL_USER and GMAIL_PASS must be set")
+    """Notify the recipient that stem separation failed using SendGrid."""
+    api_key = os.environ.get("SENDGRID_API_KEY")
+    from_addr = os.environ.get("SENDGRID_FROM")
+    if not api_key or not from_addr:
+        raise RuntimeError("SENDGRID_API_KEY and SENDGRID_FROM must be set")
 
-    msg = EmailMessage()
-    msg["Subject"] = "Stem separation failed"
-    msg["From"] = user
-    msg["To"] = recipient
-    msg.set_content(f"There was an error during stem separation:\n\n{error}")
+    message = Mail(
+        from_email=from_addr,
+        to_emails=recipient,
+        subject="Stem separation failed",
+        plain_text_content=f"There was an error during stem separation:\n\n{error}",
+    )
 
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
-        smtp.login(user, password)
-        smtp.send_message(msg)
+    sg = SendGridAPIClient(api_key)
+    sg.send(message)
 
 
 def _separate_and_email(audio_path: str, output_dir: str, workdir: str, recipient: str) -> None:
