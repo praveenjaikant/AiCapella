@@ -1,6 +1,6 @@
 import uvicorn
 from fastapi import FastAPI, UploadFile, File, BackgroundTasks
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 import tempfile
 import os
 import shutil
@@ -8,6 +8,12 @@ import shutil
 from separate_demucs import separate
 
 app = FastAPI(title="AiCapella")
+
+
+@app.get("/", include_in_schema=False)
+async def docs_redirect() -> RedirectResponse:
+    """Redirect root path to API documentation."""
+    return RedirectResponse(url="/docs")
 
 
 def _cleanup(path: str) -> None:
