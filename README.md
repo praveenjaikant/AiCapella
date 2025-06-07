@@ -41,5 +41,9 @@ above. You can also start a small web service using FastAPI:
 uvicorn app:app --reload
 ```
 
-Upload an audio file with a POST request to `/separate` and the service will
-return a zip archive containing the separated stems.
+Upload an audio file with a POST request to `/separate` and include a form field
+named `email` with the recipient address. The service will process the file in
+the background and email a zip archive containing the separated stems to that
+address. Set the `SENDGRID_API_KEY` and `SENDGRID_FROM` environment variables so
+the service can send mail using Twilio SendGrid.
+If separation fails, an email notification will be sent instead.

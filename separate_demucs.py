@@ -14,6 +14,7 @@ def separate(audio_path: str, output_dir: str = "separated") -> None:
     """
     command = [
         "demucs",
+        "--mp3",
         "-n",
         "htdemucs_ft",
         "-o",
