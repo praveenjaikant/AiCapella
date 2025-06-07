@@ -31,7 +31,7 @@ def _send_email(zip_path: str, recipient: str) -> None:
     encoded = base64.b64encode(data).decode()
     attachment = Attachment(
         FileContent(encoded),
-        FileName("stems.zip"),
+        FileName(os.path.basename(zip_path)),
         FileType("application/zip"),
         Disposition("attachment"),
     )
@@ -70,7 +70,9 @@ def _separate_and_email(audio_path: str, output_dir: str, workdir: str, recipien
     """Run separation and email the resulting zip file."""
     try:
         separate(audio_path, output_dir)
-        zip_path = shutil.make_archive(os.path.join(workdir, "stems"), "zip", output_dir)
+        song_name = os.path.splitext(os.path.basename(audio_path))[0]
+        stems_dir = os.path.join(output_dir, "htdemucs_ft", song_name)
+        zip_path = shutil.make_archive(os.path.join(workdir, song_name), "zip", stems_dir)
         _send_email(zip_path, recipient)
     except Exception as exc:
         try:
