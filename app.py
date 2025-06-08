@@ -18,7 +18,7 @@ import shutil
 from separate_demucs import separate
 
 
-def _send_email(zip_path: str, recipient: str) -> None:
+def _send_email(zip_path: str, recipient: str, audio_name: str) -> None:
     """Send the zip archive to the recipient using SendGrid."""
     api_key = os.environ.get("SENDGRID_API_KEY")
     from_addr = os.environ.get("SENDGRID_FROM")
@@ -39,8 +39,13 @@ def _send_email(zip_path: str, recipient: str) -> None:
     message = Mail(
         from_email=from_addr,
         to_emails=recipient,
-        subject="Separated stems",
-        plain_text_content="See attached archive for your separated stems.",
+        subject=f"Your AiCapella stems for {audio_name} are ready",
+        plain_text_content=(
+            "Hi,\n\n"
+            "Your audio file has been processed successfully. "
+            "The attached ZIP archive contains your separated stems.\n\n"
+            "Thank you for using AiCapella."
+        ),
     )
     message.attachment = attachment
 
@@ -58,8 +63,14 @@ def _send_error_email(recipient: str, error: str) -> None:
     message = Mail(
         from_email=from_addr,
         to_emails=[recipient, os.environ.get("ADMIN_EMAIL")],
-        subject="Stem separation failed",
-        plain_text_content=f"There was an error during stem separation:\n\n{error}",
+        subject="AiCapella: Error processing audio",
+        plain_text_content=(
+            "Hi,\n\n"
+            "We were unable to separate stems for your audio file:\n"
+            f"{error}\n\n"
+            "No stems were generated. Please try again or contact support "
+            "if the issue persists."
+        ),
     )
 
     sg = SendGridAPIClient(api_key)
@@ -70,10 +81,11 @@ def _separate_and_email(audio_path: str, output_dir: str, workdir: str, recipien
     """Run separation and email the resulting zip file."""
     try:
         separate(audio_path, output_dir)
-        song_name = os.path.splitext(os.path.basename(audio_path))[0]
+        file_name = os.path.basename(audio_path)
+        song_name = os.path.splitext(file_name)[0]
         stems_dir = os.path.join(output_dir, "htdemucs_ft", song_name)
         zip_path = shutil.make_archive(os.path.join(workdir, song_name), "zip", stems_dir)
-        _send_email(zip_path, recipient)
+        _send_email(zip_path, recipient, file_name)
     except Exception as exc:
         try:
             _send_error_email(recipient, str(exc))
